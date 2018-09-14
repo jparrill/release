@@ -1,0 +1,70 @@
+---
+openshift_ovirt_vm_profile:
+  master:
+    cluster: "{{ openshift_ovirt_cluster }}"
+    template: "{{ ovirt_template_name }}"
+    memory: 16GiB
+    cores: 2
+    high_availability: true
+    disks:
+    - size: 15GiB
+      storage_domain: "{{ openshift_ovirt_data_store }}"
+      name: docker_disk
+      interface: virtio
+    - size: 30GiB
+      storage_domain: "{{ openshift_ovirt_data_store }}"
+      name: localvol_disk
+      interface: virtio
+    - size: 25GiB
+      storage_domain: "{{ openshift_ovirt_data_store }}"
+      name: etcd_disk
+      interface: virtio
+    state: running
+  node:
+    cluster: "{{ openshift_ovirt_cluster }}"
+    template: "{{ ovirt_template_name }}"
+    memory: 8GiB
+    cores: 2
+    high_availability: true
+    disks:
+    - size: 15GiB
+      storage_domain: "{{ openshift_ovirt_data_store }}"
+      name: docker_disk
+      interface: virtio
+    - size: 30GiB
+      storage_domain: "{{ openshift_ovirt_data_store }}"
+      name: localvol_disk
+      interface: virtio
+    state: running
+
+openshift_ovirt_vm_manifest:
+    - name: 'master'
+      count: 1
+      profile: 'master'
+    - name: 'infra'
+      count: 1
+      profile: 'node'
+    - name: 'compute'
+      count: 1
+      profile: 'node'
+    - name: 'lb'
+      count: 0
+      profile: 'node'
+
+openshift_node_groups:
+- name: node-config-master
+  labels:
+  - 'node-role.kubernetes.io/master=true'
+  - 'role=infra'
+- name: node-config-node
+  labels:
+  - 'node-role.kubernetes.io/compute=true'
+  - 'node-role.kubernetes.io/infra=true'
+  - 'role=app'
+  edits:
+  - key: kubeletArguments.pods-per-core
+    value: ['20']
+
+openshift_gcp_project: openshift-gce-devel
+public_hosted_zone: origin-gce.dev.openshift.com
+dns_managed_zone: origin-gce
